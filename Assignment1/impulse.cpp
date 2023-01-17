@@ -17,13 +17,15 @@ int main(int argc, char* argv[]) {
     double phase = 0;
     double fourier = 0;
     // below 80% of the Nyquist frequency
-    int maxH = (double)SAMPLE_RATE / 2.0f * 0.8f / frequency;
-    for (int i = 0; i < duration * SAMPLE_RATE; ++i) {
+    int nyquist = (double)SAMPLE_RATE / 2.0f * 0.8f;
+    for (int i = 1; i <= duration * SAMPLE_RATE; ++i) {
         fourier = 0;
-        for (int j = 0; j < maxH; j++) {
+        int N = 0;
+        for (int j = 1; j * frequency <= nyquist; j++) {
             fourier += sin(j * phase);
+            N++;
         }
-        fourier /= maxH;
+        fourier /= N;
         mono(fourier);
 
         phase += 2 * pi * frequency / SAMPLE_RATE;
