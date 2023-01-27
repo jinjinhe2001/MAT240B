@@ -26,6 +26,7 @@ add_executable(triangle triangle.cpp)
 add_executable(wav-read wav-read.cpp)
 add_executable(wav-write wav-write.cpp)
 add_executable(Quasi Quasi.cpp)
+add_executable(Quasi1 Quasi1.cpp)
 
 
 
