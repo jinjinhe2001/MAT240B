@@ -5,9 +5,9 @@ class QuasiSaw
 {
 public:
     // variables and constants
-    float osc; // output of the saw oscillator
-    float osc2; // output of the saw oscillator 2
-    float phase; // phase accumulator
+    float osc = 0; // output of the saw oscillator
+    float osc2 = 0; // output of the saw oscillator 2
+    float phase = 0; // phase accumulator
     float w; // normalized frequency
     float scaling; // scaling amount
     float DC; // DC compensation
@@ -20,14 +20,13 @@ public:
     float in_hist; // delay for the HF filter
     float filter = 1.0f;
 public:
-    void config(double freq = 440.0, double samplerate = 44100) { // double freq, double sampleFrames, double samplerate
+    void config(double freq = 440.0, double samplerate = 44100) { // double freq, double samplerate
         double lastW = w;
         w = freq/samplerate; // normalized frequency
         if (fabs(w - lastW) < 1e-6) return;
         float n = 0.5f-w;
         scaling = filter * 13.0f * pow(n,4); // calculate scaling
         DC = 0.376f - w*0.752f; // calculate DC compensation
-        osc = 0.f; phase = 0.f; // reset oscillator and phase
         norm = 1.0f - 2.0f*w; // calculate normalization
     }
     void updateScaling(float _filter) {
@@ -53,9 +52,9 @@ class QuasiPulse
 {
 public:
     // variables and constants
-    float osc; // output of the saw oscillator
-    float osc2; // output of the saw oscillator 2
-    float phase; // phase accumulator
+    float osc = 0; // output of the saw oscillator
+    float osc2 = 0; // output of the saw oscillator 2
+    float phase = 0; // phase accumulator
     float w; // normalized frequency
     float scaling; // scaling amount
     float DC; // DC compensation
@@ -76,7 +75,6 @@ public:
         float n = 0.5f-w;
         scaling = filter * 13.0f * pow(n,4); // calculate scaling
         DC = 0.376f - w*0.752f; // calculate DC compensation
-        osc = 0.f; phase = 0.f; // reset oscillator and phase
         norm = 1.0f - 2.0f*w; // calculate normalization
     }
     void updateScaling(float _filter) {

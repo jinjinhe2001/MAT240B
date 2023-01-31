@@ -87,7 +87,6 @@ struct QuasiBandLimited : public AudioProcessor {
     buffer.clear();
     auto left = buffer.getWritePointer(0, 0);
     auto right = buffer.getWritePointer(1, 0);
-    left[0] = right[0] = dbtoa(gain->get());  // click!
     
     for (int i = 1; i < buffer.getNumSamples(); ++i) {
       float A = dbtoa(gain->get());
