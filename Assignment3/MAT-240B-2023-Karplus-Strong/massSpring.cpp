@@ -79,13 +79,47 @@ class DelayLine : std::vector<float> {
     resize((int)floor(seconds * samplerate) + 1);
   }
 };
+// Biquad Filter from Karl
+class BiquadFilter {
+  // Audio EQ Cookbook
+  // http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
 
-struct MeanFilter {
-  float x1{0};
+  // x[n-1], x[n-2], y[n-1], y[n-2]
+  float x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+
+  // filter coefficients
+  float b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0;
+
+ public:
   float operator()(float x0) {
-    float v = (x0 + x1) / 2;
+    // Direct Form 1, normalized...
+    float y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    y2 = y1;
+    y1 = y0;
+    x2 = x1;
     x1 = x0;
-    return v;
+    return y0;
+  }
+
+  void normalize(float a0) {
+    b0 /= a0;
+    b1 /= a0;
+    b2 /= a0;
+    a1 /= a0;
+    a2 /= a0;
+  }
+
+  void lpf(float f0, float Q, float samplerate) {
+    float w0 = 2 * float(M_PI) * f0 / samplerate;
+    float alpha = sin(w0) / (2 * Q);
+    b0 = (1 - cos(w0)) / 2;
+    b1 = 1 - cos(w0);
+    b2 = (1 - cos(w0)) / 2;
+    float a0 = 1 + alpha;
+    a1 = -2 * cos(w0);
+    a2 = 1 - alpha;
+
+    normalize(a0);
   }
 };
 
@@ -196,16 +230,11 @@ struct MassSpringModel {
 struct KarpusStrongModel {
   // Jinjin put code here
   DelayLine delay;
-  MeanFilter filter;
-  float delayTime{1};
-  float gain{1};
+  BiquadFilter filter;
+  float delayTime;
+  float gain;
   float frequency;
   float samplerate_;
-
-  void reset() {
-    gain = 1;
-    delayTime = 1;
-  }
 
   void configure(float hertz, float seconds, float samplerate) {
     // given t60 (`seconds`) and frequency (`Hertz`), calculate
@@ -221,20 +250,14 @@ struct KarpusStrongModel {
     //
     // the size of the delay *is* the period of the vibration
     // of the string, so 1/period = frequency.
-  
     frequency = hertz;
     delayTime = 1 / hertz;
-    gain = pow(dbtoa(-60.0f), 1.0f / (seconds / delayTime));
-    std::cout<<gain<<"+"<<1.0f / (seconds / delayTime)<<std::endl;
-
+    gain = pow(dbtoa(-60), 1.0f / (seconds / delayTime));
     samplerate_ = samplerate;
   }
   
   float trigger() {
     // fill the delay line with noise
-    for (int i = 0; i < delayTime * samplerate_; i++) {
-      delay.write(gain * ((float)random() / RAND_MAX));
-    }
     return 1.0;
   }
   
@@ -252,9 +275,8 @@ class KarplusStrong : public AudioProcessor {
   AudioParameterFloat* gain;
   AudioParameterFloat* note;
   AudioParameterBool* trigger;
-  AudioParameterFloat* delay_time;
   BooleanOscillator timer;
-  KarpusStrongModel string;
+  MassSpringModel string;
   bool triggerLast{false};
   /// add parameters here ///////////////////////////////////////////////////
   TextButton triggerButton{ TRANS("Trigger") };
@@ -276,9 +298,6 @@ class KarplusStrong : public AudioProcessor {
           {"trigger", 1}, "trigger", false
         )
     );
-    addParameter(delay_time = new juce::AudioParameterFloat(
-                     {"delay", 1}, "Delay",
-                     juce::NormalisableRange<float>(0, 4, 0.01f), 0.7f));
   }
 
 
@@ -288,7 +307,7 @@ class KarplusStrong : public AudioProcessor {
   void triggerF() {
     float r = 0.1 + 0.9 * Random::getSystemRandom().nextFloat();
     timer.period(r / 2 + 0.5f, (float)getSampleRate());
-    string.configure(mtof(note->get()), r * r * r,
+    string.recalculate(mtof(note->get()), r * r * r,
                         (float)getSampleRate());
     string.trigger();
   }
@@ -315,16 +334,21 @@ class KarplusStrong : public AudioProcessor {
     }
   }
 
+  void paint (juce::Graphics& g) {
+    // (Our component is opaque, so we must completely fill the background with a solid colour)
+
+    g.setColour (juce::Colours::white);
+    g.setFont (15.0f);
+    
+  }
   /// handle doubles ? //////////////////////////////////////////////////////
   // void processBlock(AudioBuffer<double>& buffer, MidiBuffer&) override {
   //   buffer.applyGain(dbtoa((float)*gain));
   // }
 
   /// start and shutdown callbacks///////////////////////////////////////////
-  void prepareToPlay(double samplerate, int) override {
+  void prepareToPlay(double, int) override {
     // XXX when does this get called? seems to not get called in stand-alone
-    string.delay.allocate(delay_time->getNormalisableRange().end,
-                        (float)samplerate);
   }
   void releaseResources() override {}
 
