@@ -225,7 +225,6 @@ struct KarpusStrongModel {
     frequency = hertz;
     delayTime = 1 / hertz;
     gain = pow(dbtoa(-60.0f), 1.0f / (seconds / delayTime));
-    std::cout<<gain<<"+"<<1.0f / (seconds / delayTime)<<std::endl;
 
     samplerate_ = samplerate;
   }
